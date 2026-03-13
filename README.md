@@ -1,253 +1,188 @@
-# 🖥️ DisplaySwitch
+以下是为您整理好的完整 Markdown 源码。您可以直接将其复制并保存为 `README.md`。
+
+```markdown
+# 🖥️ DisplaySwitch: 极简双机切换指南
 
 [![macOS](https://img.shields.io/badge/macOS-兼容-blue)](#)
 [![DDC/CI](https://img.shields.io/badge/DDC/CI-支持-green)](#)
-[![License](https://img.shields.io/badge/免费开源-MIT_License-lightgrey)](#)
+[![License](https://img.shields.io/badge/免费开源-MIT-lightgrey)](#)
 
-**DisplaySwitch** 是一个简单高效的命令行工具，让你只需一行命令即可在 Mac 和 Windows/Linux 之间无缝切换显示器输入源。告别繁琐的显示器物理按键，拥抱丝滑的工作流！
-
-## ✨ 特性
-
-* **🚀 一键切换**：输入 `tomac` 切到 Mac，输入 `towin` 切到 Windows。
-* **🔔 即时反馈**：提供桌面通知和终端输出的双重确认。
-* **🔧 零成本**：完全免费，无需购买额外的 KVM 硬件切换器。
-* **📱 状态同步**：自动记录并管理当前的输入源状态。
-* **💻 跨版本支持**：全面兼容 Apple Silicon (M1/M2/M3) 和 Intel Mac。
-* **🎯 即装即用**：一次简单配置，永久有效。
-
-## 📋 兼容性
-
-| 组件 | 要求 |
-| :--- | :--- |
-| **操作系统** | macOS 10.15+ |
-| **显示器** | 必须支持 **DDC/CI 协议**（绝大多数现代显示器均支持） |
-| **主机 1** | Mac (Type-C / Thunderbolt) |
-| **主机 2** | Windows / Linux (HDMI / DP) |
-
-> **⚠️ 注意**：使用前请务必确认显示器 OSD 菜单设置中已开启 **DDC/CI** 选项。
+这是一个专为 Mac 用户设计的超轻量级工具，只需一行命令，即可在 Mac 和 Windows/Linux 之间无缝切换显示器输入源。
 
 ---
 
-## 🚀 快速开始
+## 📝 完整教程
 
-### 1. 安装依赖
+### 第一步：安装必需工具
 
 ```bash
-# 安装 Homebrew (如未安装)
+# 先安装 Homebrew（如果已有可跳过）
 /bin/bash -c "$(curl -fsSL [https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh](https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh))"
 
 # 根据芯片类型安装工具：
-# 👉 对于 Apple Silicon (M1/M2/M3):
-brew install m1ddc
+brew install m1ddc  # Apple Silicon (M1/M2/M3) 芯片用这个
+# 或
+brew install ddcctl # Intel 芯片用这个
 
-# 👉 对于 Intel Mac:
-brew install ddcctl
 ```
 
-### 2. 获取显示器 ID
+### 第二步：获取显示器 ID
+
+运行以下命令查看你的显示器信息：
 
 ```bash
 m1ddc display list
+
 ```
+
 *输出示例：*
 `[1] VG2781-4K (159EAB43-F0E2-4E00-AA39-EFD114DDB050)`
 
-请记下括号内的显示器 UUID（如：`159EAB43-F0E2-4E00-AA39-EFD114DDB050`）。
+> **记下括号内的 UUID**，后面配置脚本时需要用到。
 
-### 3. 测试通道值
+### 第三步：测试通道值
 
-```bash
-# 测试切换到 Mac (假设为 Type-C，通常通道值为 15)
-sudo m1ddc display YOUR_UUID set input 15
-
-# 测试切换到 Windows (假设为 DP，通常通道值为 16) 
-sudo m1ddc display YOUR_UUID set input 16
-```
-> **💡 提示**：如果 `15` 或 `16` 无效，请尝试 `17`、`18`、`27` 等值，或使用 Windows 端的 `ControlMyMonitor` 工具查看具体通道对应的值。
-
-### 4. 部署与配置
+手动发送指令确认显示器的输入源通道：
 
 ```bash
-# 克隆仓库
-git clone [https://github.com/yourusername/DisplaySwitch.git](https://github.com/yourusername/DisplaySwitch.git)
-cd DisplaySwitch
+# 测试切换到 Type-C (通常通道值为 15)
+sudo m1ddc display 你的UUID set input 15
 
-# 编辑配置文件
-nano config.sh
+# 测试切换到 DP (通常通道值为 16)
+sudo m1ddc display 你的UUID set input 16
+
 ```
 
-**`config.sh` 配置示例：**
+> **💡 提示**：如果 `15` 或 `16` 无效，请尝试 `17`、`18`、`27` 等值，直到找到正确的对应关系。
+
+### 第四步：创建切换脚本
+
+我们将创建两个核心命令：`tomac` 和 `towin`。
+
+**1. 创建 `tomac` 命令：**
+
+```bash
+nano ~/tomac
+
+```
+
+粘贴以下内容（记得替换 UUID）：
+
 ```bash
 #!/bin/bash
-# 显示器配置
-DISPLAY_ID="YOUR_DISPLAY_UUID"   # 替换为你的显示器 UUID
-TYPE_C_PORT=15                   # 切换到 Mac 的接口通道值
-DP_PORT=16                       # 切换到 Windows 的接口通道值
-NOTIFICATIONS=true               # 是否开启桌面通知
+DISPLAY_ID="你的显示器UUID"
+sudo m1ddc display $DISPLAY_ID set input 15
+echo 15 > ~/.display_state
+osascript -e 'display notification "已切换到 Mac 💻" with title "显示器切换"'
+echo "✅ 已切换到 Mac (Type-C)"
+
 ```
 
-### 5. 执行安装
+**2. 创建 `towin` 命令：**
+
+```bash
+nano ~/towin
+
+```
+
+粘贴以下内容：
+
+```bash
+#!/bin/bash
+DISPLAY_ID="你的显示器UUID"
+sudo m1ddc display $DISPLAY_ID set input 16
+echo 16 > ~/.display_state
+osascript -e 'display notification "已切换到 Windows 🪟" with title "显示器切换"'
+echo "✅ 已切换到 Windows (DP)"
+
+```
+
+### 第五步：设置权限和全局可用
+
+让脚本在系统的任何地方都能被直接调用：
 
 ```bash
 # 赋予执行权限
-chmod +x install.sh tomac towin
+chmod +x ~/tomac ~/towin
 
-# 运行安装脚本
-sudo ./install.sh
-```
-*安装脚本将自动为你配置 sudo 免密执行、创建系统环境变量符号链接，并验证安装结果。*
+# 建立软链接到系统路径
+sudo ln -s ~/tomac /usr/local/bin/tomac
+sudo ln -s ~/towin /usr/local/bin/towin
 
----
-
-## 🎯 使用方法
-
-### 基本命令
-
-打开终端，直接输入：
-```bash
-tomac  # 切换显示器到 Mac
-towin  # 切换显示器到 Windows
 ```
 
-*成功输出示例：*
-```text
-✅ 已切换到 Mac (Type-C)
-📢 桌面通知：已切换到 Mac 💻
-```
+### 第六步：配置免密码执行 (关键步骤!)
 
-### 状态管理
-
-工具会在本地维护当前显示器的状态记录。
-```bash
-# 查看当前状态
-cat ~/.display_state
-
-# 手动修正状态（如果你使用了物理按键切屏，导致状态不同步）
-echo 15 > ~/.display_state  # 强制标记为 Mac
-echo 16 > ~/.display_state  # 强制标记为 Windows
-```
-
----
-
-## ⚙️ 配置说明
-
-所有核心配置均在 `config.sh` 中管理：
-
-| 参数 | 说明 | 默认值 |
-| :--- | :--- | :--- |
-| `DISPLAY_ID` | 显示器 UUID | **必需填写** |
-| `TYPE_C_PORT` | 连接 Mac 的接口通道值 | `15` |
-| `DP_PORT` | 连接 Win/Linux 的接口通道值 | `16` |
-| `NOTIFICATIONS` | 是否启用 macOS 桌面通知 | `true` |
-
----
-
-## 🔧 高级功能与玩法
-
-### 快捷键集成 (推荐)
-结合 Hammerspoon，你可以实现全局快捷键秒切屏幕，彻底解放终端！
+为了实现“秒切”而不需要每次输入 sudo 密码：
 
 ```bash
-# 1. 安装 Hammerspoon
-brew install --cask hammerspoon
+sudo visudo
 
-# 2. 写入快捷键配置 (示例：Cmd+Alt+M 切 Mac，Cmd+Alt+W 切 Win)
-echo 'hs.hotkey.bind({"cmd", "alt"}, "M", function() hs.execute("tomac") end)' >> ~/.hammerspoon/init.lua
-echo 'hs.hotkey.bind({"cmd", "alt"}, "W", function() hs.execute("towin") end)' >> ~/.hammerspoon/init.lua
 ```
 
-### 与 Barrier / Synergy 键鼠共享集成
-在两台电脑安装 [Barrier](https://github.com/debauchee/barrier)（Mac 作为服务端，Windows 作为客户端）。结合 DisplaySwitch，你可以实现真正的**一套键鼠无缝穿梭控制两台主机**的终极体验！
-
----
-
-## 🐛 故障排除
-
-| 问题现象 | 解决方案 |
-| :--- | :--- |
-| **命令不存在 (Command not found)** | 请回到项目目录，重新运行 `sudo ./install.sh`。 |
-| **切换无反应** | 1. 检查显示器设置中的 DDC/CI 是否开启。<br>2. 确认目标电脑处于唤醒状态。<br>3. 检查通道值是否正确。 |
-| **执行时仍需要输入密码** | 脚本可能未能成功修改 sudoers，请检查 `/etc/sudoers` 配置。 |
-| **切换后黑屏** | 目标电脑可能已休眠，请先敲击键盘或移动鼠标唤醒目标电脑。 |
-
-**常用诊断命令：**
-```bash
-# 测试 DDC/CI 通信是否正常
-sudo m1ddc display YOUR_UUID get input
-
-# 检查可执行文件是否已正确链接
-ls -la /usr/local/bin/tomac
-ls -la /usr/local/bin/towin
-
-# 检查 sudo 免密权限
-sudo visudo -c
-```
-
----
-
-## 📁 项目结构
+在文件末尾添加以下内容（**将 `username` 换成你的 Mac 用户名**）：
 
 ```text
-DisplaySwitch/
-├── README.md          # 说明文档
-├── install.sh         # 安装脚本
-├── config.sh          # 配置文件
-├── tomac              # 切换到 Mac 核心脚本
-├── towin              # 切换到 Windows 核心脚本
-├── uninstall.sh       # 卸载脚本
-└── examples/          # 进阶玩法示例
-    ├── hammerspoon/   # 快捷键配置脚本
-    └── barrier/       # 键鼠共享搭配指南
+username ALL=(ALL) NOPASSWD: /usr/local/bin/m1ddc
+
 ```
+
+*保存并退出：按 `Ctrl+O` → `Enter` 保存，再按 `Ctrl+X` 退出。*
 
 ---
 
-## 🔄 更新与卸载
+## 🎯 使用方式
 
-**更新到最新版：**
+现在，你可以在任何终端窗口直接输入：
+
+* **切换到 Mac**: `tomac`
+* **切换到 Windows**: `towin`
+
+---
+
+## 🚀 进阶技巧
+
+### 1. 使用更短的别名
+
+如果你觉得四个字母还是太长，可以配置两字母简写：
+
+1. 编辑配置文件：`nano ~/.zshrc`
+2. 在末尾添加：
 ```bash
-git pull origin main
-sudo ./install.sh
+alias tom="tomac"
+alias tow="towin"
+
 ```
 
-**完全卸载：**
-```bash
-sudo ./uninstall.sh
+
+3. 使配置生效：`source ~/.zshrc`
+
+**现在，只需输入 `tom` 或 `tow` 即可完成切换！**
+
+### 2. 结合 Hammerspoon 绑定快捷键
+
+如果你安装了 [Hammerspoon](https://www.hammerspoon.org/)，可以在 `init.lua` 中添加以下代码实现一键切换：
+
+```lua
+hs.hotkey.bind({"cmd", "alt"}, "M", function() hs.execute("tomac") end)
+hs.hotkey.bind({"cmd", "alt"}, "W", function() hs.execute("towin") end)
+
 ```
 
 ---
 
-## 🤝 贡献指南
+## ⚠️ 注意事项
 
-我们非常欢迎提交 Issue 和 Pull Request 来完善这个项目！
-1. Fork 本仓库
-2. 创建你的功能分支：`git checkout -b feature/AmazingFeature`
-3. 提交你的更改：`git commit -m 'Add some AmazingFeature'`
-4. 推送到分支：`git push origin feature/AmazingFeature`
-5. 开启一个 Pull Request
+* **DDC/CI**: 确保显示器 OSD 菜单中已开启 DDC/CI 功能。
+* **休眠限制**: 如果切换到 Windows 后，Mac 进入深度睡眠，`tomac` 命令将无法在 Mac 端执行（除非使用 Windows 端对应的 DDC 工具）。
+* **线材质量**: 部分劣质 HDMI 线可能不支持 DDC 协议。
 
 ---
 
-## 📄 许可证
+**Happy Switching! 🎮💻🎨**
 
-本项目基于 [MIT 许可证](LICENSE) 开源。
+```
 
-## 🙏 致谢
+如果您需要我针对特定的显示器品牌（如戴尔、LG 等）补充更详细的通道值表格，请随时告诉我！
 
-* [m1ddc](https://github.com/waydabber/m1ddc) - Apple Silicon DDC/CI 控制核心
-* [ddcctl](https://github.com/kfix/ddcctl) - Intel Mac DDC/CI 控制核心
-* 感谢所有参与测试和提供反馈的社区贡献者！
-
-> 如果你觉得这个项目对你有帮助，请给个 **⭐ Star** 支持一下！有任何问题，欢迎在 Issues 留言交流。
-> 
-> **Happy Switching! 🎮💻🎨**
-
----
-
-### 📝 更新日志
-
-**v1.0.0 (2024-03-20)**
-* 🚀 初始版本发布
-* 💻 支持 Apple Silicon 和 Intel Mac
-* 🔄 引入自动状态管理机制
-* 🔔 增加 macOS 桌面通知集成功能
+```
