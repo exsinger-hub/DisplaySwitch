@@ -1,6 +1,4 @@
-以下是为您整理好的完整 Markdown 源码。您可以直接将其复制并保存为 `README.md`。
 
-```markdown
 # 🖥️ DisplaySwitch: 极简双机切换指南
 
 [![macOS](https://img.shields.io/badge/macOS-兼容-blue)](#)
@@ -181,8 +179,5 @@ hs.hotkey.bind({"cmd", "alt"}, "W", function() hs.execute("towin") end)
 
 **Happy Switching! 🎮💻🎨**
 
-```
 
-如果您需要我针对特定的显示器品牌（如戴尔、LG 等）补充更详细的通道值表格，请随时告诉我！
 
-```
